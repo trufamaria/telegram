@@ -1,0 +1,43 @@
+from telethon.sync import TelegramClient
+from telethon.errors import SessionPasswordNeededError
+import pandas as pd
+
+api_id = 27621735
+api_hash = 'XXXXXXXXXXXXXXXX'
+phone = 'XXXXXXXXX'   # myphone
+
+channel = 'michellebolsonaroo'   #chennel 
+
+data = []
+
+client = TelegramClient('brand_new_session_sept3', api_id, api_hash)
+client.connect()
+
+if not client.is_user_authorized():
+    client.send_code_request(phone)
+    code = input('Enter the code Telegram sent you: ')
+    try:
+        client.sign_in(phone, code)
+    except SessionPasswordNeededError:
+        password = input('Two-step verification is enabled. Enter your password: ')
+        client.sign_in(password=password)
+
+me = client.get_me()
+print("Logged in as:", me.first_name, "| username:", me.username, "| bot:", me.bot)
+
+for message in client.iter_messages(channel, reverse=True):
+    channel_id = message.peer_id.channel_id if hasattr(message.peer_id, 'channel_id') else message.chat_id
+    data.append([
+        message.id, message.date, message.sender_id, message.text,
+        message.post_author, message.views, channel_id
+    ])
+    if len(data) % 100 == 0:
+        print(f"Collected {len(data)} messages so far...")
+
+df = pd.DataFrame(data, columns=[
+    "message_id", "date", "sender_id", "text", "post_author", "views", "channel_id"
+])
+df.to_csv("michellebolsonaroo.csv", index=False, encoding='utf-8')  #REMEMBER TO NAME THE FILE!!!!!
+print(f"Done. Saved {len(df)} posts to csv file")
+
+client.disconnect()
